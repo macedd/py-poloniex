@@ -1,8 +1,16 @@
 # 
 # Based on http://pastebin.com/8fBVpjaj
 # 
-import urllib
-import urllib2
+
+try:
+    # For Python 3.0 and later
+    from urllib.request import urlopen, Request
+    from urllib.parse import urlencode
+except ImportError:
+    # Fall back to Python 2's urllib2
+    from urllib2 import urlopen, Request
+    from urllib import urlencode
+
 import json
 import time, datetime
 from datetime import date, datetime
@@ -39,16 +47,19 @@ class Poloniex:
         return after
  
     def api(self, type, params):
-        params = dict((k,v) for k,v in params.iteritems() if v is not None)
+        try:
+            params = dict((k,v) for k,v in params.iteritems() if v is not None)
+        except AttributeError:
+            params = dict((k,v) for k,v in params.items() if v is not None)
 
         if 'public' == type:
-            uri = 'https://poloniex.com/public?' + urllib.urlencode(params)
+            uri = 'https://poloniex.com/public?' + urlencode(params)
 
-            ret = urllib2.urlopen(urllib2.Request(uri))
+            ret = urlopen(Request(uri))
             # jsonRet = json.loads(ret.read())
 
         if 'private' == type:
-            post_data = urllib.urlencode(params)
+            post_data = urlencode(params)
             
             sign = hmac.new(self.Secret, post_data, hashlib.sha512).hexdigest()
             headers = {
@@ -56,12 +67,12 @@ class Poloniex:
                 'Key': self.APIKey
             }
             
-            ret = urllib2.urlopen(urllib2.Request('https://poloniex.com/tradingApi', post_data, headers))
+            ret = urlopen(Request('https://poloniex.com/tradingApi', post_data, headers))
             # jsonRet = json.loads(ret.read())
             # return self.post_process(jsonRet)
         
         if self.parseJson:
-            return json.loads(ret.read())
+            return json.loads(ret.read().decode('utf-8'))
         else:
             return ret.read()
 
