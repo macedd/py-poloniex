@@ -1,1 +1,2 @@
 pytest>=2.8.7
+pyandoc>=0.2.0
