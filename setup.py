@@ -1,10 +1,15 @@
 import setuptools
+import os
+
+long_description = 'Python Poloniex API wrappers'
+if os.path.exists('README.txt'):
+    long_description = open('README.txt').read()
 
 
 setuptools.setup(name='py-poloniex',
-                 version='0.4',
+                 version='0.4.1',
                  description='Python Poloniex API',
-                 long_description=open('README.md').read().strip(),
+                 long_description=long_description,
                  author='Thiago Fernandes Macedo',
                  author_email='thiago@internetbudi.com.br',
                  url='https://github.com/thiagof/py-poloniex',

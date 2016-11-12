@@ -16,3 +16,8 @@ See `/tests` for usage
 Deploy
 
     python setup.py sdist upload
+
+Build readme
+
+    apt-get install pandoc
+    python register.py
