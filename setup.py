@@ -2,7 +2,7 @@ import setuptools
 
 
 setuptools.setup(name='py-poloniex',
-                 version='0.3',
+                 version='0.4',
                  description='Python Poloniex API',
                  long_description=open('README.md').read().strip(),
                  author='Thiago Fernandes Macedo',

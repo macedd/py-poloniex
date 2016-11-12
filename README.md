@@ -4,5 +4,15 @@
 Poloniex API
 ==========================
 
-
 See `/tests` for usage
+
+
+### Development
+
+    virtualenv venv
+    pip install -r requirements.txt
+    py.test
+
+Deploy
+
+    python setup.py sdist upload
