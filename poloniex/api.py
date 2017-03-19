@@ -72,7 +72,7 @@ class Poloniex:
             return self.post_process(jsonRet)
         
         if self.parseJson:
-            return jsonRet
+            return json.loads(ret.read().decode('utf-8'))
         else:
             return ret.read()
 
