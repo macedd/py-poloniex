@@ -78,7 +78,7 @@ class Poloniex:
 
     def _private(self, command, params={}):
         params['command'] = command
-        params['nonce'] = time.time()
+        params['nonce'] = int(time.time())
 
         return self.api('private', params)
 
