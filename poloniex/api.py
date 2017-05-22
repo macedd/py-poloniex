@@ -1,4 +1,4 @@
-# 
+#
 # Based on http://pastebin.com/8fBVpjaj
 # 
 
@@ -15,7 +15,7 @@ import json
 import time, datetime
 from datetime import date, datetime
 import calendar
-import hmac,hashlib
+import hmac, hashlib
 
 def createTimeStamp(datestr, format="%Y-%m-%d %H:%M:%S"):
     if type(datestr) in [date, datetime]:
@@ -56,20 +56,20 @@ class Poloniex:
             uri = 'https://poloniex.com/public?' + urlencode(params)
 
             ret = urlopen(Request(uri))
-            # jsonRet = json.loads(ret.read())
+            jsonRet = json.loads(ret.read().decode('utf-8'))
 
         if 'private' == type:
-            post_data = urlencode(params)
+            post_data = bytes(urlencode(params), 'ascii')
             
-            sign = hmac.new(self.Secret, post_data, hashlib.sha512).hexdigest()
-            headers = {
+            sign = hmac.new(bytes(self.Secret, 'ascii'), post_data, hashlib.sha512).hexdigest()
+            headers ={
                 'Sign': sign,
                 'Key': self.APIKey
             }
             
             ret = urlopen(Request('https://poloniex.com/tradingApi', post_data, headers))
-            # jsonRet = json.loads(ret.read())
-            # return self.post_process(jsonRet)
+            jsonRet = json.loads(ret.read().decode('utf-8'))
+            return self.post_process(jsonRet)
         
         if self.parseJson:
             return json.loads(ret.read().decode('utf-8'))
@@ -78,7 +78,7 @@ class Poloniex:
 
     def _private(self, command, params={}):
         params['command'] = command
-        params['nonce'] = int(time.time()*1000)
+        params['nonce'] = int(time.time())
 
         return self.api('private', params)
 
@@ -93,17 +93,17 @@ class Poloniex:
     def return24hVolume(self):
         return self._public("return24hVolume")
  
-    def returnOrderBook (self, currencyPair):
+    def returnOrderBook (self, currencyPair="BTC_Dash"):
         return self._public("returnOrderBook", {'currencyPair': currencyPair})
  
-    def returnTradeHistory (self, currencyPair, start=None, end=None):
+    def returnTradeHistory (self, currencyPair='BTC_DASH', start=None, end=None):
         return self._public("returnTradeHistory", {
             'currencyPair': currencyPair,
             'start': createTimeStamp(start),
             'end': createTimeStamp(end)
         })
  
-    def returnChartData (self, currencyPair, period=300, start=None, end=None):
+    def returnChartData (self, currencyPair='BTC_DASH', period=300, start=None, end=None):
         return self._public("returnChartData", {
             'currencyPair': currencyPair,
             'start': createTimeStamp(start),
@@ -129,7 +129,6 @@ class Poloniex:
     # total         Total value of order (price * quantity)
     def returnOpenOrders(self,currencyPair):
         return self._private('returnOpenOrders',{"currencyPair":currencyPair})
- 
  
     # Returns your trade history for a given market, specified by the "currencyPair" POST parameter
     # Inputs:
@@ -168,7 +167,7 @@ class Poloniex:
     # currencyPair  The curreny pair
     # orderNumber   The order number to cancel
     # Outputs:
-    # succes        1 or 0
+    # success        1 or 0
     def cancel(self,currencyPair,orderNumber):
         return self._private('cancelOrder',{"currencyPair":currencyPair,"orderNumber":orderNumber})
  
@@ -181,3 +180,124 @@ class Poloniex:
     # response      Text containing message about the withdrawal
     def withdraw(self, currency, amount, address):
         return self._private('withdraw',{"currency":currency, "amount":amount, "address":address})
+   
+    ####################################
+    # Margin Trading + Loan Management
+    # Added by Luke Westfield
+
+    # Returns current trading fees and trailing 30-day volume in BTC. Updated every 24 hours
+    # Inputs:           None
+    def returnFeeInfo(self):
+        return self._private('returnFeeInfo')
+        
+    # Returns balances sorted by account. Balances in margin account may not be accessible if you have open margin positions or orders
+    # Inputs:
+    # account           Specific account to retrieve (optional, default=all)
+    def returnAvailAccountBalances(self, account=None):
+        return self._private('returnAvailableAccountBalances', {"account":account})
+        
+    # Returns your current tradable balances for each currency in each market for which margin trading is enabled
+    # Inputs:           None
+    def returnTradableBalances(self):
+        return self._private('returnTradableBalances')
+        
+    # Transfers funds from account you specify to another (e.g. exchange account to margin account)
+    # Required POST parameters: "currency", "amount", "fromAccount", "toAccount"
+    # Inputs:
+    # currency          Currency to transfer (e.g. BTC)
+    # amount            Amount of currency to transfer (float)
+    # fromAccount       Account moving currency from ("exchange", "margin", or "lending")
+    # toAccount         Account moving currency to (same options as fromAccount)
+    def transferBalance(self, currency, amount, fromAccount, toAccount):
+        return self._private('transferBalance', {"currency": currency, "amount": amount, 
+                                    "fromAccount": fromAccount, "toAccount":toAccount})
+        
+    # Returns a summary of entire margin account
+    # Inputs:           None
+    def returnMarginAccountSummary(self):
+        return self._private('returnMarginAccountSummary')
+    
+    # Places margin buy order in a given market. Bitcoins spent(total) = rate of currencyPair * amount *(1+lendingRate)
+    # Required POST parameters: "currencyPair", "rate", "amount", "lendingRate"
+    # Inputs:
+    # currencyPair      Specifies given market to enter margin position (e.g. BTC_XMR)
+    # rate              Current rate of market (e.g. 0.03243)
+    # amount            Amount to buy (in units of particular market currency))
+    # lendingRate       Maximum lending rate (default=.02)
+    def marginBuy(self, currencyPair, rate, amount, lendingRate=0.02):
+        return self._private('marginSell', {"currencyPair": currencyPair, "rate":rate, "amount":amount, 
+                                    "lendingRate":lendingRate})
+    
+    # Places margin sell order in a given market. Bitcoins spent(total) = rate of currencyPair * amount *(1+lendingRate)
+    # Required POST parameters: "currencyPair", "rate", "amount", "lendingRate"
+    # Inputs:
+    # currencyPair      Specifies given market to sell margin position (e.g. BTC_XMR)
+    # rate              Current price of market (e.g. 0.03243)
+    # amount            Amount to sell (in BTC)
+    # lendingRate       Maximum lending rate (default=.02)
+    def marginSell(self, currencyPair, rate, amount, lendingRate=0.02):
+        return self._private('marginSell', {"currencyPair": currencyPair, "rate":rate, "amount":amount, 
+                                    "lendingRate":lendingRate})
+    
+    # Get margin position in a given market denoted by currencyPair. Required POST parameters: "currencyPair"
+    # Inputs:
+    # currencyPair      Specifies given market to get margin position (e.g. BTC_XMR) (default = all, returns all margin positions)
+    def getMarginPosition(self,currencyPair='BTC_ETH'):
+        return self._private('getMarginPosition',{"currencyPair" : currencyPair})
+
+    # Closes margin position in a given market. Also returns success if you do not have an open position
+    # Required POST parameters: "currencyPair"
+    # Inputs:
+    # currencyPair      Specifies given market to close margin position (e.g. BTC_XMR)
+    def closeMarginPosition(self, currencyPair):
+        return self._private('closeMarginPosition', {"currencyPair": currencyPair}) 
+    
+    # Creates a loan offer for a given currency. Required POST parameters: "currency", "amount", "duration", "lendingRate"
+    # Inputs:
+    # currency          Currency format of loan (e.g. BTC)
+    # amount            Loan amount
+    # duration          Number of days loan is active
+    # autoRenew         Set to 1 if loan is to auto renew, 0 otherwise (default = 1)
+    # lendingRate       Lending rate in decimal form (e.g. .02 for 2%)
+    def createLoanOffer(self, currency, amount, duration, autoRenew=1, lendingRate=.02):
+        return self._private('createLoanOffer', {"currency": currency, "amount":amount, "duration":duration,
+                                    "autoRenew":autoRenew, "lendingRate":lendingRate})
+        
+    # Cancels a loan offer. Required POST parameter: "orderNumber"
+    # Inputs: 
+    # orderNumber       Order ID number of loan offer to cancel
+    def cancelLoanOffer(self, orderNumber):
+        return self._private('cancelLoanOffer', {"orderNumber": orderNumber})
+    
+    # Returns your open loan offers for each currency
+    # Inputs            None
+    def returnOpenLoanOffers(self):
+        return self._private('returnOpenLoanOffers')
+    
+    # Return active loans for each currency
+    # Inputs:           None
+    def returnActiveLoans(self):
+        return self._private('returnActiveLoans')
+    
+    # Returns lending history within a time specified. Required POST parameters: "start", "stop"
+    # Inputs:
+    # start             Start of time range of inquiry. UNIX timestamp format
+    # stop              End of time range of inquiry. UNIX timestamp format
+    # limit             Specified limit of rows to return (optional, default = 1)
+    def returnLendingHistory(self, start=None, stop=None, limit=3):
+        return self._private('returnLendingHistory', {"start": start, "stop": stop, "limit" : limit})   
+
+    # Toggles the Auto Renew setting on an active loan. Required POST parameter: "orderNumber"
+    # Inputs:
+    # orderNumber       Order Number of Active Loan
+    def toggleAutoRenew(self, orderNumber):
+        return self._private('toggleAutoRenew', {"orderNumber": orderNumber})
+    
+    
+    
+    
+    
+    
+    
+    
+    
