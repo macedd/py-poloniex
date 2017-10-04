@@ -13,18 +13,18 @@ class TestPoloniex(object):
 
         assert 'BTC_ETH' in res.keys()
         assert 'lowestAsk' in res['BTC_ETH'].keys()
-        
+
     def test_volume(self):
         res = self.poloniex.return24hVolume()
-        
+
         assert 'BTC_ETH' in res.keys()
         assert 'BTC' in res['BTC_ETH'].keys()
-        
+
     def test_orderbook(self):
         res = self.poloniex.returnOrderBook('BTC_ETH')
         assert 'bids' in res.keys()
         assert 'asks' in res.keys()
-        
+
     def test_tradehistory(self):
         start = datetime.now() - timedelta(hours=1)
         res = self.poloniex.returnTradeHistory('BTC_ETH', start)
