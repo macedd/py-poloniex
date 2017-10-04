@@ -56,7 +56,6 @@ class Poloniex:
             uri = 'https://poloniex.com/public?' + urlencode(params)
 
             ret = urlopen(Request(uri))
-            # jsonRet = json.loads(ret.read())
 
         if 'private' == type:
             post_data = urlencode(params)
@@ -68,8 +67,6 @@ class Poloniex:
             }
 
             ret = urlopen(Request('https://poloniex.com/tradingApi', post_data, headers))
-            # jsonRet = json.loads(ret.read())
-            # return self.post_process(jsonRet)
 
         if self.parseJson:
             return json.loads(ret.read().decode('utf-8'))
